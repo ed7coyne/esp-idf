@@ -41,6 +41,21 @@ static const char *TAG = "TUSB:device";
 #endif
 
 //--------------------------------------------------------------------+
+// User API
+//--------------------------------------------------------------------+
+__attribute__((weak)) bool tud_custom_control_cb(
+        uint8_t port, tusb_control_request_t const* request) {
+    ESP_LOGV(TAG, "Rejecting unknown control request: %u", request->bRequest);
+    return false;
+ }
+
+__attribute__((weak)) bool tud_custom_control_complete_cb(
+        uint8_t port, tusb_control_request_t const* request) {
+    ESP_LOGV(TAG, "Rejecting unknown control request: %u", request->bRequest);
+    return false;
+ }
+
+//--------------------------------------------------------------------+
 // Device Data
 //--------------------------------------------------------------------+
 typedef struct {
@@ -394,6 +409,10 @@ static bool process_control_request(uint8_t rhport, tusb_control_request_t const
     case TUSB_REQ_RCPT_DEVICE:
         if (TUSB_REQ_TYPE_STANDARD != p_request->bmRequestType_bit.type) {
             // Non standard request is not supported
+            if (tud_custom_control_cb(rhport, p_request)) {
+                usbd_control_set_complete_callback(tud_custom_control_complete_cb);
+                return true;
+            }
             TU_BREAKPOINT();
             return false;
         }
